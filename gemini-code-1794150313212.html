@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIRE Kalkulator</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #121212; 
+            color: #e0e0e0; 
+            padding: 20px; 
+            display: flex; 
+            justify-content: center; 
+        }
+        .container { 
+            background-color: #1e1e1e; 
+            padding: 30px; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5); 
+            max-width: 450px; 
+            width: 100%; 
+        }
+        h1 { 
+            text-align: center; 
+            margin-top: 0; 
+            margin-bottom: 25px; 
+            font-size: 24px; 
+            color: #4ade80; 
+        }
+        .form-group { 
+            margin-bottom: 18px; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-size: 14px; 
+            color: #a0aec0; 
+        }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #333; 
+            border-radius: 6px; 
+            background-color: #2d3748; 
+            color: #fff; 
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+        input[type="range"] { 
+            padding: 0; 
+            margin-top: 10px;
+        }
+        .result-box { 
+            margin-top: 30px; 
+            padding: 20px; 
+            background-color: #2d3748; 
+            border-radius: 8px; 
+            border-left: 4px solid #4ade80; 
+        }
+        .result-box h3 { 
+            margin-top: 0; 
+            margin-bottom: 15px; 
+            font-size: 18px; 
+        }
+        .result-box p { 
+            margin: 10px 0; 
+            font-size: 15px;
+        }
+        .highlight { 
+            color: #4ade80; 
+            font-weight: bold; 
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>FIRE Dashboard</h1>
+        
+        <div class="form-group">
+            <label>Nåværende alder</label>
+            <input type="number" id="age" value="34">
+        </div>
+        <div class="form-group">
+            <label>Inntekt etter skatt (kr/mnd)</label>
+            <input type="number" id="income" value="50000">
+        </div>
+        <div class="form-group">
+            <label>Månedlig sparing i fond (kr/mnd)</label>
+            <input type="number" id="savings" value="5000">
+        </div>
+        <div class="form-group">
+            <label>Nåværende fondssaldo (kr)</label>
+            <input type="number" id="fund" value="150000">
+        </div>
+        <div class="form-group">
+            <label>Forventet årlig avkastning: <span id="return-display" style="color:#fff; font-weight:bold;">7</span>%</label>
+            <input type="range" id="return-rate" min="3" max="10" step="0.5" value="7">
+        </div>
+
+        <div class="result-box">
+            <h3>Dine milepæler frem til 70 år</h3>
+            <p>Ditt månedlige forbruk: <span class="highlight" id="expenses-display">45 000</span> kr</p>
+            <p>Du kan jobbe 50%: <span class="highlight" id="half-fire">Regner...</span></p>
+            <p>Tidlig pensjon (100%): <span class="highlight" id="full-fire">Regner...</span></p>
+        </div>
+    </div>
+
+    <script>
+        function calculateMilestones() {
+            const currentAge = parseInt(document.getElementById('age').value) || 0;
+            const income = parseFloat(document.getElementById('income').value) || 0;
+            const savings = parseFloat(document.getElementById('savings').value) || 0;
+            const initialFund = parseFloat(document.getElementById('fund').value) || 0;
+            const returnRate = parseFloat(document.getElementById('return-rate').value) || 0;
+            
+            document.getElementById('return-display').innerText = returnRate;
+            
+            const monthlyExpenses = income - savings;
+            document.getElementById('expenses-display').innerText = monthlyExpenses.toLocaleString('no-NO');
+
+            if (monthlyExpenses <= 0) return;
+
+            const monthlyReturn = returnRate / 100 / 12;
+            const targetAge = 70;
+            
+            let halfFireAge = null;
+            let fullFireAge = null;
+            let simulatedFund = initialFund;
+            
+            // Simulerer år for år frem til 70
+            for (let age = currentAge; age < targetAge; age++) {
+                const monthsRemaining = (targetAge - age) * 12;
+                
+                // Formel for nåverdi av en annuitet (beløpet som trengs i dag for å ta ut x i n måneder)
+                // PV = PMT * ((1 - (1 + r)^-n) / r)
+                const requiredFundForHalf = (monthlyExpenses * 0.5) * ((1 - Math.pow(1 + monthlyReturn, -monthsRemaining)) / monthlyReturn);
+                const requiredFundForFull = monthlyExpenses * ((1 - Math.pow(1 + monthlyReturn, -monthsRemaining)) / monthlyReturn);
+                
+                if (halfFireAge === null && simulatedFund >= requiredFundForHalf) {
+                    halfFireAge = age;
+                }
+                
+                if (fullFireAge === null && simulatedFund >= requiredFundForFull) {
+                    fullFireAge = age;
+                }
+                
+                // Legg til sparing og avkastning for dette året (12 måneder)
+                for (let m = 0; m < 12; m++) {
+                    simulatedFund = (simulatedFund + savings) * (1 + monthlyReturn);
+                }
+            }
+
+            document.getElementById('half-fire').innerText = halfFireAge ? halfFireAge + ' år' : 'Etter 70';
+            document.getElementById('full-fire').innerText = fullFireAge ? fullFireAge + ' år' : 'Etter 70';
+        }
+
+        // Legg til event listeners for å oppdatere tallene live
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('input', calculateMilestones);
+        });
+
+        // Kjør kalkuleringen umiddelbart ved innlasting
+        calculateMilestones();
+    </script>
+</body>
+</html>
